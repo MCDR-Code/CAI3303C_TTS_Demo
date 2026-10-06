@@ -176,3 +176,7 @@ Codex moved the F5-TTS source, Python environment, frontend, and documentation i
 An empty repository was initially created in the currently authenticated gosharktech account. Once personal ownership was clarified, transfer of that empty repository to MarielaCDelRio was requested; no project files were uploaded to the company account.
 
 **Verification:** Five API tests passed, pip check reported no broken requirements, the compatibility patch applied to clean upstream source, browser known/unknown question flows worked, browser voice playback completed, Whisper transcribed an uploaded recording, and the updated backend generated a valid F5-TTS WAV. Codespaces execution and live microphone recording have not been verified.
+
+## Repository publication — October 6, 2026
+
+The repository transfer was accepted. Ownership was verified as MarielaCDelRio and visibility as public. The prepared main branch was pushed to https://github.com/MarielaCDelRio/CAI3303C_TTS_Demo. No project commit was uploaded under the previous gosharktech ownership. The original company-account repository URL now redirects to the personal repository as part of GitHub's transfer behavior.
