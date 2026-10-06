@@ -1,0 +1,17 @@
+.venv/
+.build/
+__pycache__/
+*.pyc
+data/output/
+data/voices/
+data/voices_log.json
+data/latest_verification.json
+gen_audio/
+demo/gen_audio/
+older/
+.env
+.env.*
+!.env.example
+.cache/
+*.log
+*.class

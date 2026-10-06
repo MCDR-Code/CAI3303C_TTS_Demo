@@ -1,0 +1,37 @@
+diff --git a/src/f5_tts/infer/utils_infer.py b/src/f5_tts/infer/utils_infer.py
+index a0d9483..1f22b4c 100644
+--- a/src/f5_tts/infer/utils_infer.py
++++ b/src/f5_tts/infer/utils_infer.py
+@@ -20,6 +20,7 @@ matplotlib.use("Agg")
+ 
+ import matplotlib.pylab as plt
+ import numpy as np
++import soundfile as sf
+ import torch
+ import torchaudio
+ import tqdm
+@@ -49,6 +50,15 @@ tempfile_kwargs = {"delete_on_close": False} if sys.version_info >= (3, 12) else
+ 
+ # -----------------------------------------
+ 
++
++def load_audio_with_soundfile(audio_path):
++    """Load audio without TorchCodec, which can be fragile on Windows."""
++    audio_np, sr = sf.read(audio_path, always_2d=True)
++    audio_np = audio_np.T
++    audio = torch.from_numpy(audio_np).float()
++    return audio, sr
++
++
+ target_sample_rate = 24000
+ n_mel_channels = 100
+ hop_length = 256
+@@ -400,7 +410,7 @@ def infer_process(
+     device=device,
+ ):
+     # Split the input text into batches
+-    audio, sr = torchaudio.load(ref_audio)
++    audio, sr = load_audio_with_soundfile(ref_audio)
+     max_chars = int(len(ref_text.encode("utf-8")) / (audio.shape[-1] / sr) * (22 - audio.shape[-1] / sr) * speed)
+     gen_text_batches = chunk_text(gen_text, max_chars=max_chars)
+     for i, gen_text_i in enumerate(gen_text_batches):

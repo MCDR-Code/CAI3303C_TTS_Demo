@@ -1,0 +1,29 @@
+F5-TTS/API/Deployment — Assignment Instructions
+(Source: Canvas, CAI3303C-2267-13181, Fall 2026. This assignment does not count toward the final grade.)
+
+F5-TTS installation, API access, and Client utilization Exercise:
+
+Use your LLM of choice to assist you in completing this exercise. Submit your prompt history and a synopsis of what you learned and whether or not it can assist you in completing your project.
+
+Steps:
+1. Check for Java and install if necessary: https://www.oracle.com/java/technologies/downloads/
+2. Check for python and install if necessary: https://www.python.org/downloads/
+3. Create and activate a python environment. You may use cmd, PowerShell, Anaconda (https://docs.anaconda.com/navigator/), or IDE of choice.
+4. Install ffmpeg, flask.
+5. Install F5-TTS in the environment: https://github.com/SWivid/F5-TTS
+6. Install Git if necessary.
+7. After installing F5-TTS, change directory into its environment.
+8. Download the imv folder into the F5-TTS installation folder (see imv_api.py in this Week04 folder).
+9. Run the imv_api.py file in the F5-TTS\imv folder: python imv_api.py
+10. To run the Java test program, you must have Java SDK installed.
+11. Create a directory and save the TTSCLIENT.java file (or AddVoiceClient.java) in the folder.
+12. Open a terminal window and navigate to the directory where the .java file is located.
+13. Compile the java program: javac TTSCLIENT.java
+14. Run the java program: java TTSCLIENT
+15. Play the ./gen_audio/output.wav file to hear the results.
+
+Peruse the F5-TTS Git repository and review its source code — will be reviewed in class.
+
+Files in this folder that support this assignment:
+- imv_api.py — the Flask API server to run inside the F5-TTS installation (from the Canvas-linked "imv" folder)
+- AddVoiceClient.java, TTSCLIENT.java — Java clients that call the running API

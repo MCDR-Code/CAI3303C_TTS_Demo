@@ -1,0 +1,4 @@
+flask
+flask-cors
+ffmpeg-python
+python-certifi-win32; sys_platform == 'win32'

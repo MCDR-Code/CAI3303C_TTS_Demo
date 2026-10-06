@@ -1,0 +1,6 @@
+# Install into the parent TTS folder's shared .venv using Setup-Demo.ps1.
+openai-whisper
+scikit-learn
+requests
+sounddevice
+numpy

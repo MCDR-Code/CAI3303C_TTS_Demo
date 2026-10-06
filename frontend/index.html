@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>F5-TTS Voice Studio</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a1a2e">
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --panel: #1a1a2e;
+    --accent: #7c5cff;
+    --accent-2: #4fd1c5;
+    --text: #f0f0f5;
+    --muted: #9a9ab0;
+    --border: #2c2c44;
+    --danger: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 16px;
+    padding-bottom: 48px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 1.4rem; margin: 8px 0 4px; }
+  .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card h2 { font-size: 1rem; margin: 0 0 12px; color: var(--accent-2); }
+  label { display: block; font-size: 0.8rem; color: var(--muted); margin: 10px 0 4px; }
+  input[type=text], input[type=url], textarea, select {
+    width: 100%;
+    background: #12121f;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+  }
+  textarea { min-height: 70px; resize: vertical; }
+  input[type=file] { width: 100%; color: var(--muted); font-size: 0.85rem; }
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    width: 100%;
+    margin-top: 14px;
+    cursor: pointer;
+  }
+  button:active { opacity: 0.8; }
+  button:disabled { background: #3a3a55; cursor: not-allowed; }
+  button.secondary { background: transparent; border: 1px solid var(--accent); }
+  .status { font-size: 0.8rem; margin-top: 10px; min-height: 1.2em; }
+  .status.ok { color: var(--accent-2); }
+  .status.err { color: var(--danger); }
+  audio { width: 100%; margin-top: 12px; }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .dot.up { background: var(--accent-2); }
+  .dot.down { background: var(--danger); }
+  details summary { cursor: pointer; color: var(--muted); font-size: 0.8rem; }
+</style>
+</head>
+<body>
+
+<h1>F5-TTS Voice Studio</h1>
+<div class="sub">Custom front end for the Week04 F5-TTS API assignment — works from a laptop or a phone on the same Wi-Fi.</div>
+
+<div class="card">
+  <h2>Connection</h2>
+  <label for="apiBase">API base URL (your computer's address, e.g. http://192.168.1.23:5000)</label>
+  <input type="url" id="apiBase" placeholder="http://192.168.1.23:5000" autocomplete="off">
+  <div class="status" id="healthStatus"><span class="dot down"></span>not checked</div>
+  <button class="secondary" onclick="checkHealth()">Check connection</button>
+</div>
+
+<div class="card">
+  <h2>1. Add a voice</h2>
+  <label for="voiceUsername">Voice name</label>
+  <input type="text" id="voiceUsername" placeholder="e.g. mariela">
+  <label for="voiceText">Exact transcript of the reference clip</label>
+  <textarea id="voiceText" placeholder="Type exactly what is said in the audio file below."></textarea>
+  <label for="voiceFile">Reference audio (5–15s of clean speech)</label>
+  <input type="file" id="voiceFile" accept="audio/*">
+  <button onclick="addVoice()" id="addVoiceBtn">Add / Update Voice</button>
+  <div class="status" id="addVoiceStatus"></div>
+</div>
+
+<div class="card">
+  <h2>2. Generate speech</h2>
+  <label for="voicePicker">Voice</label>
+  <div class="row">
+    <select id="voicePicker"><option value="default">default</option></select>
+    <button class="secondary" style="margin-top:0;flex:0 0 auto;padding:10px 14px;" onclick="loadVoices()">↻</button>
+  </div>
+  <label for="genText">Text to speak</label>
+  <textarea id="genText" placeholder="Type what you want the voice to say."></textarea>
+  <button onclick="generate()" id="genBtn">Generate Audio</button>
+  <div class="status" id="genStatus"></div>
+  <audio id="player" controls style="display:none;"></audio>
+</div>
+
+<details>
+  <summary>Using this from a phone</summary>
+  <p style="color:var(--muted);font-size:0.8rem;">
+  Run the API on your laptop (<code>python imv_api.py</code>), find your laptop's LAN IP
+  (Windows: <code>ipconfig</code> → IPv4 Address), make sure your phone is on the same Wi-Fi,
+  and enter <code>http://&lt;that IP&gt;:5000</code> above. On iOS Safari / Android Chrome you can
+  add this page to your home screen for a near-native launcher icon.
+  </p>
+</details>
+
+<script>
+function apiBase() {
+  return document.getElementById('apiBase').value.replace(/\/$/, '');
+}
+
+async function checkHealth() {
+  const el = document.getElementById('healthStatus');
+  el.innerHTML = '<span class="dot down"></span>checking...';
+  try {
+    const res = await fetch(apiBase() + '/health');
+    const data = await res.json();
+    el.innerHTML = `<span class="dot up"></span>online — model: ${data.model || 'unknown'}`;
+    loadVoices();
+  } catch (e) {
+    el.innerHTML = '<span class="dot down"></span>unreachable — check the URL and that the API is running';
+  }
+}
+
+async function loadVoices() {
+  try {
+    const res = await fetch(apiBase() + '/voices');
+    const data = await res.json();
+    const picker = document.getElementById('voicePicker');
+    picker.innerHTML = '';
+    (data.voices || ['default']).forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      picker.appendChild(opt);
+    });
+  } catch (e) { /* leave default option */ }
+}
+
+async function addVoice() {
+  const btn = document.getElementById('addVoiceBtn');
+  const status = document.getElementById('addVoiceStatus');
+  const username = document.getElementById('voiceUsername').value.trim();
+  const text = document.getElementById('voiceText').value.trim();
+  const file = document.getElementById('voiceFile').files[0];
+
+  if (!username || !text || !file) {
+    status.className = 'status err';
+    status.textContent = 'Voice name, transcript, and an audio file are all required.';
+    return;
+  }
+
+  const form = new FormData();
+  form.append('username', username);
+  form.append('text', text);
+  form.append('file', file);
+
+  btn.disabled = true;
+  status.className = 'status';
+  status.textContent = 'Uploading...';
+  try {
+    const res = await fetch(apiBase() + '/add_voice', { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+    status.className = 'status ok';
+    status.textContent = data.message + ` (${data.username})`;
+    loadVoices();
+  } catch (e) {
+    status.className = 'status err';
+    status.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function generate() {
+  const btn = document.getElementById('genBtn');
+  const status = document.getElementById('genStatus');
+  const player = document.getElementById('player');
+  const username = document.getElementById('voicePicker').value;
+  const text = document.getElementById('genText').value.trim();
+
+  if (!text) {
+    status.className = 'status err';
+    status.textContent = 'Enter some text to speak.';
+    return;
+  }
+
+  btn.disabled = true;
+  status.className = 'status';
+  status.textContent = 'Generating... this can take a while on CPU.';
+  try {
+    const res = await fetch(apiBase() + '/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, text })
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `HTTP ${res.status}`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    player.src = url;
+    player.style.display = 'block';
+    player.play().catch(() => {});
+    status.className = 'status ok';
+    status.textContent = 'Done.';
+  } catch (e) {
+    status.className = 'status err';
+    status.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Try a sensible default: if this page is served by the API itself (not opened as a file),
+// assume same host, port 5000.
+(function () {
+  if (location.protocol.startsWith('http')) {
+    document.getElementById('apiBase').value = location.origin;
+  } else {
+    document.getElementById('apiBase').value = 'http://localhost:5000';
+  }
+})();
+</script>
+
+</body>
+</html>

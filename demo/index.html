@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Sky · Voice assistant demo</title>
+  <style>
+    :root { --ink:#183044; --muted:#526878; --blue:#135da4; --line:#dce6ed; --paper:#fff; --wash:#f3f7fa; --green:#15725c; --red:#a12d38; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink); background:var(--wash); }
+    button,select,textarea,input { font:inherit; }
+    button,select { cursor:pointer; }
+    button { border:1px solid var(--line); border-radius:12px; padding:11px 17px; color:var(--ink); background:white; font-weight:600; transition:background .15s; }
+    button:hover:not(:disabled) { background:#edf5fc; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    :focus-visible { outline:3px solid #39a1d7; outline-offset:3px; }
+    a { color:var(--blue); text-underline-offset:3px; }
+    [hidden] { display:none !important; }
+    .shell { max-width:1140px; margin:auto; padding:0 28px; }
+    header { background:white; border-bottom:1px solid var(--line); }
+    .nav { min-height:86px; display:flex; align-items:center; justify-content:space-between; gap:20px; }
+    .brand { display:flex; align-items:center; gap:12px; }
+    .mark { background:var(--blue); color:white; width:44px; height:44px; border-radius:14px; display:grid; place-items:center; font-size:25px; font-weight:700; }
+    .brand strong { display:block; font-size:20px; letter-spacing:-.5px; }
+    .brand small { color:var(--muted); font-size:12px; }
+    .nav-right { display:flex; align-items:center; gap:18px; font-size:13px; }
+    .connection { display:flex; align-items:center; gap:7px; }
+    .dot { width:8px; height:8px; flex:none; border-radius:50%; background:#8696a3; }
+    .connection[data-state="online"] .dot { background:var(--green); }
+    .connection[data-state="offline"] .dot { background:var(--red); }
+    .hero { padding:44px 0 28px; max-width:720px; }
+    .eyebrow { color:var(--blue); font-weight:700; font-size:12px; letter-spacing:1.6px; text-transform:uppercase; }
+    h1 { font-size:clamp(32px,5vw,46px); line-height:1.15; letter-spacing:-1.5px; margin:12px 0 16px; }
+    .hero p { color:var(--muted); font-size:17px; margin:0; }
+    .workspace { display:grid; grid-template-columns:1.06fr 1fr; align-items:start; gap:24px; }
+    .card { background:var(--paper); border:1px solid var(--line); border-radius:20px; padding:28px; box-shadow:0 8px 28px #193c5710; }
+    h2 { font-size:20px; margin:0 0 6px; letter-spacing:-.4px; }
+    .sub { font-size:14px; color:var(--muted); margin:0 0 22px; }
+    label,.label { display:block; font-weight:650; font-size:13px; margin-bottom:8px; }
+    textarea { width:100%; resize:vertical; min-height:124px; border:1px solid #bacbd8; border-radius:12px; padding:14px; background:#fcfdff; color:var(--ink); }
+    textarea::placeholder { color:#6e8392; }
+    select { width:100%; background:white; color:var(--ink); border:1px solid #bacbd8; border-radius:10px; padding:10px; min-height:46px; }
+    .options { display:grid; grid-template-columns:.85fr 1.3fr; gap:14px; margin:18px 0 12px; }
+    .hint { font-size:12px; color:var(--muted); margin:7px 0 16px; }
+    .warning { background:#fff6e8; border:1px solid #ecd4ad; border-radius:10px; padding:12px; color:#75501a; font-size:13px; }
+    .primary { background:var(--blue); color:white; border-color:var(--blue); }
+    .primary:hover:not(:disabled) { background:#0c4b88; }
+    .ask { width:100%; margin-top:5px; }
+    .examples { margin-top:22px; }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; }
+    .chip { font-size:12px; font-weight:500; padding:7px 11px; border-radius:30px; background:#f4f8fb; }
+    .divider { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; margin:24px 0 18px; }
+    .divider::before,.divider::after { content:""; height:1px; background:var(--line); flex:1; }
+    .record { width:100%; display:flex; align-items:center; justify-content:center; gap:9px; }
+    .record-indicator { width:10px; height:10px; background:var(--red); border-radius:50%; }
+    .record[aria-pressed="true"] { background:#fff0f1; border-color:#e2a7ac; color:var(--red); }
+    .upload { margin-top:18px; }
+    input[type="file"] { width:100%; color:var(--muted); font-size:12px; }
+    input::file-selector-button { background:var(--wash); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:9px; margin-right:8px; cursor:pointer; }
+    .upload button { width:100%; margin-top:12px; }
+    .answer-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .badge { font-size:11px; font-weight:650; background:#e8f5ef; color:var(--green); padding:5px 9px; border-radius:20px; }
+    .badge.fallback { background:#fff1d8; color:#805719; }
+    .empty { padding:44px 14px; text-align:center; color:var(--muted); }
+    .orb { width:80px; height:80px; background:radial-gradient(circle at 30% 30%,#e3f8fc,#b9ddf5 60%,#92bfe5); border-radius:50%; margin:0 auto 22px; box-shadow:0 0 0 12px #f2f8fc; display:grid; place-items:center; color:var(--blue); font-size:30px; }
+    .empty strong { display:block; color:var(--ink); margin-bottom:8px; }
+    .empty p { font-size:14px; margin:0; }
+    .question { color:var(--muted); font-size:14px; margin:22px 0 16px; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .answer-text { font-size:19px; line-height:1.65; white-space:pre-wrap; overflow-wrap:anywhere; margin:0; }
+    .translation { margin-top:18px; font-size:13px; background:var(--wash); padding:12px; border-radius:10px; overflow-wrap:anywhere; }
+    .translation strong { display:block; margin-bottom:4px; }
+    .metadata { border-top:1px solid var(--line); margin-top:22px; padding-top:16px; }
+    dl { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 0 0; }
+    dt { font-size:11px; color:var(--muted); }
+    dd { font-size:13px; font-weight:600; margin:2px 0 0; overflow-wrap:anywhere; }
+    .voice-panel { border-top:1px solid var(--line); margin-top:22px; padding-top:18px; }
+    .voice-panel p { font-size:13px; color:var(--muted); margin:0 0 12px; }
+    audio { display:block; width:100%; margin:12px 0; }
+    .status { margin-top:18px; padding:12px; background:#edf5fc; border-radius:10px; font-size:13px; }
+    .status p { margin:0; }
+    .elapsed { color:var(--muted); margin-top:4px !important; font-variant-numeric:tabular-nums; }
+    .error { background:#fff0f1; border:1px solid #edc6ca; color:#862932; padding:12px; border-radius:10px; margin-top:16px; font-size:13px; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .about { margin:26px 0; border:1px solid var(--line); border-radius:16px; padding:20px 24px; background:#eaf2f8; }
+    .about h2 { font-size:15px; margin-bottom:8px; }
+    .about p { margin:0; font-size:13px; color:var(--muted); }
+    footer { padding:0 0 28px; font-size:12px; color:var(--muted); display:flex; justify-content:space-between; gap:16px; }
+    @media (max-width:800px) { .workspace { grid-template-columns:1fr; } .hero { padding-top:30px; } .card { padding:23px; } }
+    @media (max-width:480px) { .shell { padding:0 16px; } .nav { min-height:80px; } .nav-right { flex-direction:column; align-items:flex-end; gap:6px; font-size:11px; } .brand small { font-size:10px; } .options { grid-template-columns:1fr; } footer { flex-direction:column; } }
+    @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="shell nav">
+      <div class="brand"><div class="mark" aria-hidden="true">S</div><div><strong>Sky</strong><small>Miami Dade College · School demo</small></div></div>
+      <div class="nav-right">
+        <div id="connection" class="connection" data-state="checking" role="status"><span class="dot" aria-hidden="true"></span><span id="connectionText">Checking connection…</span></div>
+        <a href="/studio">Open voice studio ↗</a>
+      </div>
+    </div>
+  </header>
+  <main class="shell">
+    <section class="hero" aria-labelledby="title">
+      <span class="eyebrow">Meet your virtual concierge</span>
+      <h1 id="title">A question. A conversation.</h1>
+      <p>Get to know Sky. Type a question or let your voice do the talking, in English or Spanish.</p>
+    </section>
+    <div class="workspace">
+      <section class="card" aria-labelledby="askTitle">
+        <h2 id="askTitle">Ask Sky</h2><p class="sub">Start with an example, or ask in your own words.</p>
+        <form id="questionForm">
+          <label for="questionInput">Your question</label>
+          <textarea id="questionInput" name="text" placeholder="What is Sky?" required maxlength="4000" aria-describedby="typingHint"></textarea>
+          <div class="options">
+            <div><label for="language">Answer language</label><select id="language"><option value="en">English</option><option value="es">Español</option></select></div>
+            <div><label for="voice">Voice output</label><select id="voice"><option value="browser">Browser voice (fast)</option><option value="model">F5-TTS (model)</option></select></div>
+          </div>
+          <p class="hint" id="typingHint">For typed questions, English works best for FAQ matching. The language choice sets your typed answer’s language.</p>
+          <p class="warning" id="modelWarning" hidden>F5-TTS runs on the server and can take several minutes on a CPU. English is preferred for the model voice; Spanish pronunciation may be less reliable.</p>
+          <button class="primary ask" id="askButton" type="submit">Ask Sky →</button>
+        </form>
+        <div class="examples"><span class="label">Try one of the six FAQ topics</span><div class="chips" id="examples">
+          <button type="button" class="chip" data-question="What is Sky?">Meet Sky</button>
+          <button type="button" class="chip" data-question="What languages can you speak?">Languages</button>
+          <button type="button" class="chip" data-question="How do you understand what I say?">Speech recognition</button>
+          <button type="button" class="chip" data-question="How does your voice work?">Sky’s voice</button>
+          <button type="button" class="chip" data-question="Where can I find you?">Locations</button>
+          <button type="button" class="chip" data-question="Who built you?">Student creators</button>
+        </div></div>
+        <div class="divider">or ask with audio</div>
+        <button id="recordButton" class="record" type="button" aria-pressed="false" aria-describedby="micHint"><span class="record-indicator" aria-hidden="true"></span><span id="recordLabel">Record a question</span></button>
+        <p class="hint" id="micHint">Microphone access requires HTTPS or localhost. Press again to stop and send. Recordings stop automatically after 60 seconds.</p>
+        <div class="upload">
+          <label for="audioFile">Upload a recorded question</label>
+          <input id="audioFile" type="file" accept=".webm,.wav,.mp3,.m4a,.ogg,audio/webm,audio/wav,audio/mpeg,audio/mp4,audio/ogg" aria-describedby="uploadHint">
+          <p class="hint" id="uploadHint">WebM, WAV, MP3, M4A or OGG. Spoken Spanish is translated into English for FAQ matching; the answer follows the detected language.</p>
+          <button id="uploadButton" type="button" disabled>Transcribe &amp; ask Sky</button>
+        </div>
+        <div id="status" class="status" hidden><p id="statusText" role="status" aria-live="polite"></p><p class="elapsed" id="elapsed" aria-live="off"></p></div>
+        <div id="error" class="error" role="alert" hidden></div>
+      </section>
+      <section class="card" aria-labelledby="answerTitle" id="answerCard" aria-busy="false">
+        <div class="answer-head"><h2 id="answerTitle">Sky’s answer</h2><span class="badge" id="answerBadge" hidden></span></div>
+        <div id="empty" class="empty"><div class="orb" aria-hidden="true">✦</div><strong>Ready when you are</strong><p>Your answer will appear here first.<br>Then Sky will read it aloud.</p></div>
+        <div id="result" hidden>
+          <p class="question" id="heardQuestion"></p>
+          <p class="answer-text" id="answerText" aria-live="polite" aria-atomic="true"></p>
+          <div class="translation" id="translation" hidden><strong>English used for FAQ matching</strong><span id="englishText"></span></div>
+          <div class="metadata" aria-label="FAQ match scores and processing timings">
+            <span class="label">Behind the answer</span>
+            <dl>
+              <div><dt>Closest FAQ question</dt><dd id="matched">—</dd></div>
+              <div><dt>Answer language</dt><dd id="detectedLanguage">—</dd></div>
+              <div><dt>Similarity score (not confidence)</dt><dd id="score">—</dd></div>
+              <div><dt>Match threshold</dt><dd id="threshold">—</dd></div>
+              <div><dt>Transcription time (server)</dt><dd id="transcribeTime">—</dd></div>
+              <div><dt>Answer time (server)</dt><dd id="answerTime">—</dd></div>
+            </dl>
+          </div>
+          <div class="voice-panel">
+            <p id="voiceStatus" role="status" aria-live="polite">Voice playback will appear here.</p>
+            <audio id="audioPlayer" controls preload="metadata" aria-label="Sky’s generated WAV answer" hidden></audio>
+            <button id="replayButton" type="button" disabled>Read answer again</button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <aside class="about"><h2>A small demo, with a clear scope</h2><p>Sky matches questions against six predefined FAQ topics: its identity, languages, speech recognition, voice generation, locations, and student creators. This is not a general college help desk. English and Spanish answers are supported; English is preferred for FAQ matching and F5-TTS voice output. Spoken Spanish can be translated into English for matching. If Sky cannot find an answer, this demo cannot connect you to a real person.</p></aside>
+    <footer><span>Sky · Natural Language Processing school demo</span><span><button id="healthButton" type="button">Recheck connection</button></span></footer>
+  </main>
+  <script>
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const ui = Object.fromEntries(['questionForm','questionInput','language','voice','askButton','modelWarning','recordButton','recordLabel','audioFile','uploadButton','status','statusText','elapsed','error','answerCard','empty','result','answerBadge','heardQuestion','answerText','translation','englishText','matched','detectedLanguage','score','threshold','transcribeTime','answerTime','voiceStatus','audioPlayer','replayButton','healthButton','connection','connectionText','micHint'].map(id => [id, $(id)]));
+    const chips = Array.from(document.querySelectorAll('.chip'));
+    const micSupported = window.isSecureContext && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined';
+    const speechSupported = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
+    let busy = false, acquiringMic = false, recorder = null, stream = null;
+    let recordingTimeout = null, elapsedTimer = null, audioUrl = null, lastAnswer = null;
+    let disposed = false, speechFinish = null;
+    const requests = new Set();
+
+    function updateControls() {
+      const recording = recorder !== null;
+      const locked = busy || acquiringMic || recording;
+      for (const element of [ui.questionInput, ui.language, ui.voice, ui.askButton, ui.audioFile, ...chips]) element.disabled = locked;
+      ui.uploadButton.disabled = locked || !ui.audioFile.files.length;
+      ui.recordButton.disabled = busy || acquiringMic || !micSupported;
+      ui.replayButton.disabled = locked || !lastAnswer;
+      ui.healthButton.disabled = locked;
+      ui.recordButton.setAttribute('aria-pressed', String(recording));
+      ui.recordLabel.textContent = recording ? 'Stop recording & send' : acquiringMic ? 'Requesting microphone…' : 'Record a question';
+      ui.answerCard.setAttribute('aria-busy', String(busy && !lastAnswer));
+    }
+
+    function showError(error) {
+      ui.error.textContent = error instanceof Error ? error.message : String(error);
+      ui.error.hidden = false;
+    }
+
+    function clearError() { ui.error.hidden = true; ui.error.textContent = ''; }
+
+    function progress(message) {
+      clearInterval(elapsedTimer);
+      const start = performance.now();
+      ui.status.hidden = false;
+      ui.statusText.textContent = message;
+      const tick = () => { ui.elapsed.textContent = `Elapsed: ${Math.floor((performance.now() - start) / 1000)} seconds`; };
+      tick();
+      elapsedTimer = setInterval(tick, 1000);
+    }
+
+    function endProgress() {
+      clearInterval(elapsedTimer);
+      elapsedTimer = null;
+      ui.status.hidden = true;
+    }
+
+    function clearAudio() {
+      ui.audioPlayer.pause();
+      ui.audioPlayer.removeAttribute('src');
+      ui.audioPlayer.load();
+      ui.audioPlayer.hidden = true;
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      audioUrl = null;
+    }
+
+    function cancelSpeech() {
+      if (speechSupported) window.speechSynthesis.cancel();
+      if (speechFinish) speechFinish();
+    }
+
+    function describeBackend(payload) {
+      if (typeof payload === 'string') return payload;
+      if (payload && typeof payload === 'object') {
+        const detail = payload.detail ?? payload.message ?? payload.error ?? payload;
+        return typeof detail === 'string' ? detail : JSON.stringify(detail);
+      }
+      return String(payload ?? '');
+    }
+
+    async function request(path, options = {}, timeout = 180000) {
+      const controller = new AbortController();
+      requests.add(controller);
+      const timer = setTimeout(() => controller.abort(), timeout);
+      try {
+        const response = await fetch(path, { ...options, signal:controller.signal });
+        if (!response.ok) {
+          const raw = await response.text();
+          let detail = raw;
+          try { detail = describeBackend(JSON.parse(raw)); } catch { /* Plain-text backend error. */ }
+          throw new Error(`${path} failed (${response.status}): ${detail || response.statusText}`);
+        }
+        // Consume the body before clearing the timeout, including model audio downloads.
+        return options.audio ? await response.blob() : await response.json();
+      } catch (error) {
+        if (error.name === 'AbortError') throw new Error(`${path} timed out. The server may still be processing; please try again later.`);
+        if (error instanceof TypeError) throw new Error(`Cannot reach ${path}. Check the server connection and try again. ${error.message}`);
+        throw error;
+      } finally {
+        clearTimeout(timer);
+        requests.delete(controller);
+      }
+    }
+
+    async function health() {
+      ui.healthButton.disabled = true;
+      ui.connection.dataset.state = 'checking';
+      ui.connectionText.textContent = 'Checking connection…';
+      try {
+        const data = await request('/health', {}, 15000);
+        if (data?.healthy === false || data?.ok === false || ['error','unhealthy','offline'].includes(String(data?.status).toLowerCase())) {
+          throw new Error(describeBackend(data));
+        }
+        ui.connection.dataset.state = 'online';
+        ui.connectionText.textContent = 'Server connected';
+        ui.connection.title = 'The health endpoint responded successfully.';
+      } catch (error) {
+        ui.connection.dataset.state = 'offline';
+        ui.connectionText.textContent = 'Server unavailable';
+        ui.connection.title = error.message;
+        showError(new Error(`Connection check: ${error.message}`));
+      } finally { updateControls(); }
+    }
+
+    const numeric = value => typeof value === 'number' && Number.isFinite(value);
+    const seconds = value => numeric(value) ? `${value.toFixed(2)} s` : 'Not provided';
+    function displayAnswer(data) {
+      if (!data || typeof data.answer !== 'string' || !data.answer.trim()) throw new Error('The server returned no answer text. Please try again.');
+      const language = data.language === 'es' ? 'es' : 'en';
+      // Replace handoff language from fallback responses: this demo has no human connection.
+      const answer = data.fallback ? (language === 'es'
+        ? 'No encontré una respuesta en los seis temas de preguntas frecuentes. Esta demostración no puede conectarte con una persona real. Prueba una de las preguntas de ejemplo.'
+        : 'I could not find an answer in the six FAQ topics. This demo cannot connect you to a real person. Try one of the example questions.') : data.answer;
+      lastAnswer = { answer, language };
+      ui.empty.hidden = true;
+      ui.result.hidden = false;
+      ui.answerBadge.hidden = false;
+      ui.answerBadge.textContent = data.fallback ? 'Outside the FAQ' : 'FAQ answer';
+      ui.answerBadge.classList.toggle('fallback', !!data.fallback);
+      ui.heardQuestion.textContent = `Your question: ${typeof data.question === 'string' ? data.question : ''}`;
+      ui.answerText.textContent = answer;
+      ui.translation.hidden = !(typeof data.english === 'string' && data.english.trim());
+      ui.englishText.textContent = typeof data.english === 'string' ? data.english : '';
+      ui.matched.textContent = typeof data.matched === 'string' ? data.matched : 'Not provided';
+      ui.detectedLanguage.textContent = language === 'es' ? 'Spanish (es)' : 'English (en)';
+      ui.score.textContent = numeric(data.score) ? data.score.toFixed(3) : 'Not provided';
+      ui.threshold.textContent = numeric(data.threshold) ? data.threshold.toFixed(3) : 'Not provided';
+      ui.transcribeTime.textContent = seconds(data.transcribe_seconds);
+      ui.answerTime.textContent = seconds(data.answer_seconds);
+      ui.voiceStatus.textContent = 'Answer ready. Preparing voice…';
+      ui.answerCard.setAttribute('aria-busy','false');
+    }
+
+    async function browserVoice(answer) {
+      if (!speechSupported) throw new Error('Browser speech is unavailable here. Your answer is ready; choose F5-TTS to generate audio.');
+      const utterance = new SpeechSynthesisUtterance(answer.answer);
+      utterance.lang = answer.language === 'es' ? 'es-ES' : 'en-US';
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => v.lang.toLowerCase() === utterance.lang.toLowerCase())
+        || voices.find(v => v.lang.toLowerCase().startsWith(answer.language));
+      if (preferred) utterance.voice = preferred;
+      ui.voiceStatus.textContent = `Reading in ${answer.language === 'es' ? 'Spanish' : 'English'} with your browser. Available voices depend on your device.`;
+      progress('Reading Sky’s answer with the browser voice…');
+      await new Promise((resolve, reject) => {
+        let finished = false;
+        const finish = error => {
+          if (finished) return;
+          finished = true;
+          clearTimeout(watchdog);
+          speechFinish = null;
+          utterance.onend = null;
+          utterance.onerror = null;
+          if (error) reject(error); else resolve();
+        };
+        const watchdog = setTimeout(() => {
+          finish(new Error('Browser voice playback timed out. Your answer is still available. Use Read answer again to retry.'));
+          window.speechSynthesis.cancel();
+        }, 120000);
+        speechFinish = () => finish();
+        utterance.onend = () => finish();
+        utterance.onerror = event => finish(new Error(`Browser voice failed (${event.error || 'unknown error'}). Your answer is still available; retry playback or choose F5-TTS.`));
+        try { window.speechSynthesis.speak(utterance); } catch (error) { finish(error); }
+      });
+      ui.voiceStatus.textContent = 'Browser voice finished. You can read the answer again.';
+    }
+
+    async function outputVoice() {
+      clearAudio();
+      cancelSpeech();
+      const answer = lastAnswer;
+      if (ui.voice.value === 'browser') { await browserVoice(answer); return; }
+      ui.voiceStatus.textContent = 'Generating F5-TTS audio. Your text answer is ready above.';
+      progress('Generating F5-TTS voice… CPU processing may take several minutes.');
+      const blob = await request('/tts', {
+        method:'POST', headers:{ 'Content-Type':'application/json' },
+        body:JSON.stringify({ username:'default', text:answer.answer }), audio:true
+      }, 600000);
+      if (!blob.size) throw new Error('F5-TTS returned an empty audio file. Your text answer is still available.');
+      if (disposed) return;
+      audioUrl = URL.createObjectURL(new Blob([blob], { type:'audio/wav' }));
+      ui.audioPlayer.src = audioUrl;
+      ui.audioPlayer.hidden = false;
+      ui.voiceStatus.textContent = 'F5-TTS WAV is ready. Use the audio controls to listen.';
+      try {
+        await ui.audioPlayer.play();
+        ui.voiceStatus.textContent = 'Playing F5-TTS audio. Use the controls to pause or replay.';
+      } catch {
+        ui.voiceStatus.textContent = 'F5-TTS WAV is ready. Press play in the audio controls to listen.';
+      }
+    }
+
+    async function processQuestion(path, options) {
+      if (busy || disposed) return;
+      busy = true;
+      clearError();
+      cancelSpeech();
+      clearAudio();
+      // Keep any previous answer visible while the next request is running.
+      updateControls();
+      progress(path === '/demo/transcribe' ? 'Transcribing your recording and finding a FAQ answer…' : 'Finding a FAQ answer…');
+      try {
+        const data = await request(path, options);
+        if (disposed) return;
+        displayAnswer(data);
+        // Yield so text can render before voice generation starts.
+        await new Promise(resolve => setTimeout(resolve, 0));
+        await outputVoice();
+      } catch (error) {
+        if (!disposed) {
+          showError(error);
+          ui.voiceStatus.textContent = lastAnswer ? 'The displayed answer is available. You can retry voice playback.' : 'No answer yet.';
+        }
+      } finally {
+        busy = false;
+        endProgress();
+        ui.answerCard.setAttribute('aria-busy','false');
+        updateControls();
+      }
+    }
+
+    function sendAudio(file) {
+      const form = new FormData();
+      form.append('file', file, file.name || 'question.webm');
+      return processQuestion('/demo/transcribe', { method:'POST', body:form });
+    }
+
+    function stopTracks() {
+      if (stream) stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+
+    function stopRecording() {
+      clearTimeout(recordingTimeout);
+      if (recorder?.state === 'recording') {
+        ui.recordButton.disabled = true;
+        ui.recordLabel.textContent = 'Sending recording…';
+        recorder.stop();
+        stopTracks();
+      }
+    }
+
+    async function toggleRecording() {
+      if (recorder) { stopRecording(); return; }
+      if (!micSupported || busy || acquiringMic) return;
+      clearError();
+      acquiringMic = true;
+      updateControls();
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+        if (disposed) { stopTracks(); return; }
+        const mime = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/ogg','audio/mp4'].find(type => MediaRecorder.isTypeSupported(type));
+        if (!mime) throw new Error('This browser cannot record in a supported audio format. Upload a WebM, WAV, MP3, M4A or OGG file instead.');
+        const active = new MediaRecorder(stream, { mimeType:mime });
+        const chunks = [];
+        let failed = false;
+        recorder = active;
+        active.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
+        active.onerror = event => {
+          failed = true;
+          showError(new Error(`Microphone recording failed: ${event.error?.message || 'Please try again or upload a file.'}`));
+          stopRecording();
+          // Some browsers end the recorder before dispatching its error event.
+          stopTracks();
+          clearTimeout(recordingTimeout);
+          recorder = null;
+          endProgress();
+          updateControls();
+        };
+        active.onstop = () => {
+          clearTimeout(recordingTimeout);
+          stopTracks();
+          recorder = null;
+          endProgress();
+          updateControls();
+          if (failed || disposed) return;
+          const type = active.mimeType || mime;
+          const extension = type.includes('ogg') ? 'ogg' : type.includes('mp4') ? 'm4a' : 'webm';
+          const blob = new Blob(chunks, { type });
+          if (!blob.size) { showError(new Error('The recording was empty. Please record again.')); return; }
+          void sendAudio(new File([blob], `question.${extension}`, { type }));
+        };
+        active.start();
+        progress('Recording your question… Press Stop recording & send when finished.');
+        recordingTimeout = setTimeout(stopRecording, 60000);
+      } catch (error) {
+        stopTracks();
+        recorder = null;
+        showError(new Error(`Could not start the microphone: ${error.message}. Check browser permission or upload a recording.`));
+      } finally {
+        acquiringMic = false;
+        updateControls();
+      }
+    }
+
+    ui.questionForm.addEventListener('submit', event => {
+      event.preventDefault();
+      if (busy || recorder || acquiringMic) return;
+      const text = ui.questionInput.value.trim();
+      if (!text) { showError(new Error('Enter a question first.')); ui.questionInput.focus(); return; }
+      void processQuestion('/demo/answer', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ text, language:ui.language.value }) });
+    });
+    chips.forEach(chip => chip.addEventListener('click', () => {
+      ui.questionInput.value = chip.dataset.question;
+      ui.questionInput.focus();
+    }));
+    ui.audioFile.addEventListener('change', updateControls);
+    ui.uploadButton.addEventListener('click', () => {
+      if (busy || recorder || acquiringMic) return;
+      const file = ui.audioFile.files[0];
+      if (!file) { showError(new Error('Choose an audio file first.')); return; }
+      if (!/\.(webm|wav|mp3|m4a|ogg)$/i.test(file.name)) { showError(new Error('Choose a WebM, WAV, MP3, M4A or OGG recording.')); return; }
+      if (!file.size) { showError(new Error('The selected audio file is empty. Choose another recording.')); return; }
+      void sendAudio(file);
+    });
+    ui.recordButton.addEventListener('click', () => void toggleRecording());
+    ui.voice.addEventListener('change', () => { ui.modelWarning.hidden = ui.voice.value !== 'model'; });
+    ui.replayButton.addEventListener('click', async () => {
+      if (busy || recorder || acquiringMic || !lastAnswer) return;
+      busy = true;
+      clearError();
+      updateControls();
+      try { await outputVoice(); }
+      catch (error) { showError(error); ui.voiceStatus.textContent = 'Voice output failed. Your text answer is still available.'; }
+      finally { busy = false; endProgress(); updateControls(); }
+    });
+    ui.audioPlayer.addEventListener('error', () => {
+      if (!audioUrl) return;
+      showError(new Error('The generated WAV could not be played by this browser. Try generating voice again.'));
+      ui.voiceStatus.textContent = 'Audio playback failed. Your text answer is still available.';
+    });
+    ui.audioPlayer.addEventListener('ended', () => { ui.voiceStatus.textContent = 'F5-TTS playback finished. Use the controls to listen again.'; });
+    ui.healthButton.addEventListener('click', () => { clearError(); void health(); });
+    if (!micSupported) ui.micHint.textContent = window.isSecureContext
+      ? 'Microphone recording is unavailable in this browser. You can type or upload an audio file.'
+      : 'Microphone recording requires HTTPS or localhost. Open the secure forwarded URL, or upload an audio file.';
+    window.addEventListener('pagehide', () => {
+      disposed = true;
+      clearTimeout(recordingTimeout);
+      if (recorder?.state === 'recording') recorder.stop();
+      stopTracks();
+      cancelSpeech();
+      clearAudio();
+      endProgress();
+      requests.forEach(controller => controller.abort());
+    });
+    // Restore usability if the browser restores this page from its back/forward cache.
+    window.addEventListener('pageshow', event => {
+      if (event.persisted) { disposed = false; busy = false; acquiringMic = false; recorder = null; updateControls(); void health(); }
+    });
+    updateControls();
+    void health();
+  </script>
+</body>
+</html>
