@@ -32,7 +32,7 @@ Its output is `gen_audio/output.wav`. The CLI Sky demo also remains available th
 Install Python 3.12, Git, ffmpeg, and (for the Java exercise) a Java JDK. Clone with the pinned F5-TTS source:
 
 ```text
-git clone --recurse-submodules https://github.com/MarielaCDelRio/CAI3303C_TTS_Demo.git
+git clone --recurse-submodules https://github.com/MCDR-Code/CAI3303C_TTS_Demo.git
 cd CAI3303C_TTS_Demo
 ```
 
